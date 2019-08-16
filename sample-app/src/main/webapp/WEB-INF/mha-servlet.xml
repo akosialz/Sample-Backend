@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc.xsd 
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/data/jpa
+		http://www.springframework.org/schema/data/jpa/spring-jpa.xsd
+        http://www.springframework.org/schema/aop 
+        http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+	<context:annotation-config />
+	<context:component-scan base-package="org.sample" />
+    <mvc:annotation-driven />
+    <mvc:default-servlet-handler/>
+	<jpa:repositories base-package="org.sample.test.dao"/>
+	
+	<aop:aspectj-autoproxy/>
+	
+	<!-- ASPECT BEAN -->
+	<bean class="org.sample.test.security.Authenticate" />
+	<bean class="org.sample.test.logging.SampleLogger" />
+	
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:database.properties</value>
+				<value>classpath:application.properties</value>
+				<value>classpath:messages.properties</value>
+			</list>
+		</property>
+	</bean>
+	
+   	
+   	<!-- IMITATE SERVER DATASOURCE  -->
+	<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+            <property name="jndiName" value="java:comp/env/SAMPLE_DATASOURCE" />
+            <property name="lookupOnStartup" value="false" />
+            <property name="cache" value="true" />
+            <property name="proxyInterface" value="javax.sql.DataSource" />
+    </bean>
+
+	<!-- LOCAL SERVER
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+	 -->
+	
+	<bean id="entityManagerFactory"
+		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="jpaVendorAdapter" ref="jpaVendorAdapter" />
+		<property name="jpaDialect" ref="jpaDialect" />
+		<property name="packagesToScan">
+			<array>
+				<value>org.sample.test.model</value>
+			</array>
+		</property>
+	    <property name="jpaProperties">
+	       <props>
+	            <prop key="hibernate.default_schema">${jdbc.defaultSchema}</prop>
+	       </props>
+		</property>
+	</bean>
+
+	<bean id="jpaVendorAdapter"
+		class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+		<property name="database" value="${jdbc.databaseName}" />
+		<property name="databasePlatform" value="${hibernate.dialect}" />
+		<property name="generateDdl" value="${init-db}" />
+		<property name="showSql" value="${hibernate.show_sql}" />
+	</bean>
+
+	<bean id="jpaDialect" class="org.springframework.orm.jpa.vendor.HibernateJpaDialect" />
+  
+	<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="entityManagerFactory" />
+		<property name="dataSource" ref="dataSource" />
+		<property name="jpaDialect" ref="jpaDialect" />
+	</bean>
+
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	
+	<bean name="swaggerConfig" class="sg.mha.webapp.config.SwaggerConfig"/>
+	<mvc:resources mapping="swagger-ui.html" location="classpath:/META-INF/resources/"/>
+	<mvc:resources mapping="/webjars/**" location="classpath:/META-INF/resources/webjars/"/>
+	
+	<!-- BEAN THAT SETS THE DEFINED PROPERTIES OF NSPayServiceUtil -->
+  	<bean id="serviceUtilProps" class="org.springframework.beans.factory.config.MethodInvokingBean">
+		<property name="targetClass" value="sg.mha.webapp.util.NSPayServiceUtil"/>
+		<property name="targetMethod" value="setIntranetHeaders"/>
+		<property name="arguments">
+		<list>
+			<value>#{${intranet.headers}}</value>
+		</list>
+		</property>
+	</bean>
+	
+	<!-- BEAN THAT SETS THE DEFINED PROPERTIES OF NSPayControllerUtil -->
+  	<bean id="controllerUtilProps" class="org.springframework.beans.factory.config.MethodInvokingBean">
+		<property name="targetClass" value="sg.mha.webapp.util.NSPayControllerUtil"/>
+		<property name="targetMethod" value="setMessages"/>
+		<property name="arguments">
+		<list>
+			<value>#{${messages}}</value>
+		</list>
+		</property>
+	</bean>
+		
+</beans>	
+
